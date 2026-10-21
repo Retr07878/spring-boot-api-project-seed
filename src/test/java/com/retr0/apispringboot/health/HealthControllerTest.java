@@ -15,12 +15,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class HealthControllerTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private MockMvc mockMvc;   // 模拟 HTTP 请求的工具，不用真启动服务器
 
     @Test
-    void healthReturnsUp() throws Exception {
-        mockMvc.perform(get("/health"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
+    void healthReturnsUnifiedResponse() throws Exception {
+        mockMvc.perform(get("/health"))            // 发一个 GET /health
+                .andExpect(status().isOk())         // 断言 HTTP 状态码 200
+                .andExpect(jsonPath("$.code").value("OK"))          // 断言 body.code = "OK"
+                .andExpect(jsonPath("$.message").value("success"))  // 断言 body.message
+                .andExpect(jsonPath("$.data.status").value("UP"));  // 断言 body.data.status
     }
 }
