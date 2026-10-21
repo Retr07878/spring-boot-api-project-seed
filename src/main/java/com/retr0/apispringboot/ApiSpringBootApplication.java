@@ -1,12 +1,12 @@
-package com.company.project;
+package com.retr0.apispringboot;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class Application {
+public class ApiSpringBootApplication {
+
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(ApiSpringBootApplication.class, args);
     }
 }
-
