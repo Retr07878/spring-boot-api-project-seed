@@ -10,8 +10,8 @@ public enum ErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND, "资源不存在"),
     CONFLICT(HttpStatus.CONFLICT, "数据冲突"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "服务器内部错误");
-    private HttpStatus httpStatus;
-    private String message;
+    private final HttpStatus httpStatus;
+    private final String message;
     ErrorCode(HttpStatus httpStatus, String message) {
         this.httpStatus = httpStatus;
         this.message = message;
