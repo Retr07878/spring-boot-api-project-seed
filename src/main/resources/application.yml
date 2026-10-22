@@ -1,3 +1,19 @@
 spring:
   application:
     name: spring-boot-api-project-seed
+
+  # 数据源：本地 MySQL（表结构见项目根目录 docs/sql/user.sql）
+  datasource:
+    url: jdbc:mysql://localhost:3306/api_seed?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:1234}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis:
+  # Mapper XML 的位置
+  mapper-locations: classpath:mapper/*.xml
+  # 实体别名包：XML 里可以直接写 User 而不用全限定名
+  type-aliases-package: com.retr0.apispringboot.user.entity
+  configuration:
+    # 数据库下划线字段 → Java 驼峰属性（nick_name → nickName）
+    map-underscore-to-camel-case: true

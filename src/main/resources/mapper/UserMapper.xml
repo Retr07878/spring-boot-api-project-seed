@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace 必须和 Mapper 接口的全限定名一致 -->
+<mapper namespace="com.retr0.apispringboot.user.mapper.UserMapper">
+
+    <!-- 可复用的列清单；resultType="User" 靠 type-aliases-package 配置 -->
+    <sql id="columns">
+        id, username, password, nick_name, sex, register_date
+    </sql>
+
+    <!-- 可复用的查询条件：所有列表查询共用，避免重复写 WHERE -->
+    <sql id="conditions">
+        <where>
+            <if test="q.username != null and q.username != ''">
+                AND username LIKE CONCAT('%', #{q.username}, '%')
+            </if>
+            <if test="q.nickName != null and q.nickName != ''">
+                AND nick_name LIKE CONCAT('%', #{q.nickName}, '%')
+            </if>
+            <if test="q.sex != null">
+                AND sex = #{q.sex}
+            </if>
+        </where>
+    </sql>
+
+    <select id="findById" resultType="User">
+        SELECT <include refid="columns"/>
+        FROM `user`
+        WHERE id = #{id}
+    </select>
+
+    <select id="findPage" resultType="User">
+        SELECT <include refid="columns"/>
+        FROM `user`
+        <include refid="conditions"/>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM `user`
+        <include refid="conditions"/>
+    </select>
+
+    <select id="countByUsername" resultType="int">
+        SELECT COUNT(*)
+        FROM `user`
+        WHERE username = #{username}
+    </select>
+
+    <insert id="insert" parameterType="User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `user` (username, password, nick_name, sex, register_date)
+        VALUES (#{username}, #{password}, #{nickName}, #{sex}, #{registerDate})
+    </insert>
+
+    <update id="update" parameterType="User">
+        UPDATE `user`
+        <set>
+            <if test="password != null and password != ''">
+                password = #{password},
+            </if>
+            <if test="nickName != null">
+                nick_name = #{nickName},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM `user` WHERE id = #{id}
+    </delete>
+
+</mapper>
