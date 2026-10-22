@@ -1,16 +1,26 @@
 package com.retr0.apispringboot.common;
 
+/**
+ * 业务异常。
+ *
+ * <p>表示"业务规则不满足"（用户不存在、用户名重复……），
+ * 由 {@link GlobalExceptionHandler} 统一翻译成 HTTP 响应。
+ */
 public class BusinessException extends RuntimeException {
-    private final ErrorCode errorcode;
+
+    private final ErrorCode errorCode;
     private final Object data;
-    public BusinessException(ErrorCode errorcode,String message){
-        this(errorcode,message,null);
+
+    public BusinessException(ErrorCode errorCode, String message) {
+        this(errorCode, message, null);
     }
-    public BusinessException(ErrorCode errorcode,String message, Object data) {
+
+    public BusinessException(ErrorCode errorCode, String message, Object data) {
         super(message);
-        this.errorcode = errorcode;
+        this.errorCode = errorCode;
         this.data = data;
     }
+
     public static BusinessException notFound(String message) {
         return new BusinessException(ErrorCode.NOT_FOUND, message);
     }
@@ -23,13 +33,11 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(ErrorCode.INVALID_PARAM, message);
     }
 
-    public ErrorCode getErrorcode() {
-        return errorcode;
+    public ErrorCode getErrorCode() {
+        return errorCode;
     }
 
     public Object getData() {
         return data;
     }
-
-
 }

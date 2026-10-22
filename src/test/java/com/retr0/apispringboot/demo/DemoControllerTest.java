@@ -7,11 +7,15 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * 阶段 2 的验收测试：异常处理、参数校验、分页、追踪 ID。
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 class DemoControllerTest {
@@ -19,20 +23,27 @@ class DemoControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    /* ---------------- 2.2 异常处理 ---------------- */
+
     @Test
     void businessExceptionBecomes404() throws Exception {
         mockMvc.perform(get("/demo/not-found"))
-                .andExpect(status().isNotFound())                       // ← HTTP 状态码 404
-                .andExpect(jsonPath("$.code").value("NOT_FOUND"))       // ← 业务码
-                .andExpect(jsonPath("$.message").value("用户不存在：1")); // ← 具体提示
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("用户不存在：1"));
     }
 
     @Test
     void unexpectedExceptionBecomes500() throws Exception {
         mockMvc.perform(get("/demo/boom"))
-                .andExpect(status().isInternalServerError())            // ← HTTP 500
-                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"));
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                // 内部异常信息不能泄露给前端
+                .andExpect(jsonPath("$.message").value("服务器内部错误"));
     }
+
+    /* ---------------- 2.3 参数校验 ---------------- */
+
     @Test
     void validBodyPasses() throws Exception {
         String body = """
@@ -47,7 +58,6 @@ class DemoControllerTest {
 
     @Test
     void invalidBodyReturns400WithFieldErrors() throws Exception {
-        // name 为空、age 超范围
         String body = """
                 {"name":"  ","age":200}
                 """;
@@ -64,7 +74,7 @@ class DemoControllerTest {
     void malformedJsonReturns400() throws Exception {
         mockMvc.perform(post("/demo/create")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{name: 张三"))          // 不是合法 JSON
+                        .content("{name: 张三"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAM"));
     }
@@ -77,16 +87,63 @@ class DemoControllerTest {
     }
 
     @Test
-    void typeMismatchReturns400() throws Exception {
+    void bindingFailureGetsFriendlyMessage() throws Exception {
         mockMvc.perform(get("/demo/page").param("page", "abc"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_PARAM"));
+                .andExpect(jsonPath("$.code").value("INVALID_PARAM"))
+                // 类型转换失败不能把英文系统消息暴露出去
+                .andExpect(jsonPath("$.data.page").value("参数格式不正确"));
+    }
+
+    /* ---------------- 2.4 分页 ---------------- */
+
+    @Test
+    void pageReturnsPagedStructure() throws Exception {
+        mockMvc.perform(get("/demo/page").param("page", "2").param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()").value(2))
+                .andExpect(jsonPath("$.data.total").value(5))
+                .andExpect(jsonPath("$.data.page").value(2))
+                .andExpect(jsonPath("$.data.size").value(2))
+                .andExpect(jsonPath("$.data.totalPages").value(3));
     }
 
     @Test
     void defaultPageValuesWork() throws Exception {
         mockMvc.perform(get("/demo/page"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("page=1, size=10"));
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(10))
+                .andExpect(jsonPath("$.data.items.length()").value(5));
+    }
+
+    @Test
+    void sizeOverMaxReturns400() throws Exception {
+        mockMvc.perform(get("/demo/page").param("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.data.size").value("size 不能超过 100"));
+    }
+
+    @Test
+    void pageBeyondEndReturnsEmptyItems() throws Exception {
+        mockMvc.perform(get("/demo/page").param("page", "99").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items.length()").value(0))
+                .andExpect(jsonPath("$.data.total").value(5));
+    }
+
+    /* ---------------- 2.4 追踪 ID ---------------- */
+
+    @Test
+    void traceIdHeaderIsReturned() throws Exception {
+        mockMvc.perform(get("/health"))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("X-Trace-Id"));
+    }
+
+    @Test
+    void traceIdIsEchoedWhenProvided() throws Exception {
+        mockMvc.perform(get("/health").header("X-Trace-Id", "trace-from-client"))
+                .andExpect(header().string("X-Trace-Id", "trace-from-client"));
     }
 }
